@@ -1,0 +1,34 @@
+CREATE EXTERNAL TABLE `dpc_consent`(
+  `consent_id` int, 
+  `organization_id` int, 
+  `website_id` int, 
+  `consent_hashid` string, 
+  `ip_address` string, 
+  `ip_country` string, 
+  `ip_region` string, 
+  `gcp_preference` string, 
+  `device_name` string, 
+  `storage_item` string, 
+  `user_preferences` string, 
+  `accepted_at` timestamp, 
+  `session_hashid` string, 
+  `created_at` timestamp)
+PARTITIONED BY ( 
+  `account_hashid` string, 
+  `year` string, 
+  `month` string, 
+  `day` string)
+ROW FORMAT SERDE 
+  'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
+STORED AS INPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
+OUTPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+LOCATION
+  's3://my-kinesis-firehose-bucket-demo-123456/consent-data'
+TBLPROPERTIES (
+  'classification'='parquet', 
+  'has_encrypted_data'='false', 
+  'last_modified_by'='hadoop', 
+  'last_modified_time'='1747133453', 
+  'parquet.compression'='SNAPPY')

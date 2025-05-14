@@ -1,0 +1,70 @@
+CREATE OR REPLACE VIEW "v_consent_device_stats" AS 
+SELECT
+  organization_id
+, website_id
+, COUNT(consent_hashid) unique_consents
+, (CASE WHEN (device_name IN ('Desktop', 'Tablet', 'Mobile', 'Laptop')) THEN device_name ELSE 'Unknown' END) device_name
+, year
+, month
+, day
+, hour(created_at) hour
+, date_trunc('hour', created_at) timestamp_hour
+FROM
+  kinesis_db.dpc_consent
+GROUP BY organization_id, website_id, (CASE WHEN (device_name IN ('Desktop', 'Tablet', 'Mobile', 'Laptop')) THEN device_name ELSE 'Unknown' END), year, month, day, hour(created_at), date_trunc('hour', created_at)
+ORDER BY organization_id ASC, website_id ASC, timestamp_hour ASC
+------------------
+
+
+CREATE OR REPLACE VIEW "v_consent_hourly_stats" AS 
+SELECT
+  c.organization_id organization_id
+, c.website_id website_id
+, COUNT(c.consent_hashid) unique_consents
+, c.ip_country ip_country
+, year
+, month
+, day
+, hour(c.created_at) hour
+, date_format(c.created_at, '%Y-%m-%d %H:00:00') timestamp_hour
+FROM
+  kinesis_db.dpc_consent c
+GROUP BY c.organization_id, c.website_id, c.ip_country, year, month, day, hour(c.created_at), date_format(c.created_at, '%Y-%m-%d %H:00:00')
+ORDER BY c.organization_id ASC, c.website_id ASC, timestamp_hour ASC
+----------------------
+
+
+CREATE OR REPLACE VIEW "v_dashboard_summary_stats" AS 
+SELECT
+  account_hashid
+, date_format(CAST(created_at AS timestamp), '%Y-%m-%d') date_day
+, COUNT(page_url) pageviews
+, COUNT(DISTINCT session_hashid) unique_visitors
+, COUNT(DISTINCT consent_hashid) consent_count
+, year
+, month
+, day
+FROM
+  kinesis_db.dpc_pageview_log
+GROUP BY account_hashid, date_format(CAST(created_at AS timestamp), '%Y-%m-%d'), year, month, day
+ORDER BY account_hashid ASC, date_day ASC
+----------------
+
+CREATE OR REPLACE VIEW "v_page_visit_stats" AS 
+SELECT
+  c.organization_id
+, c.website_id
+, pv.account_hashid
+, COUNT(pv.page_url) pageviews
+, COUNT(DISTINCT pv.session_hashid) unique_visitors
+, pv.year
+, pv.month
+, pv.day
+, HOUR(pv.timestamp) hour
+, DATE(pv.timestamp) date_day
+, DATE_FORMAT(pv.timestamp, '%Y-%m-%d %H:00:00') timestamp_hour
+FROM
+  (dpc_pageview_log pv
+INNER JOIN dpc_consent c ON (pv.account_hashid = c.account_hashid))
+GROUP BY c.organization_id, c.website_id, pv.account_hashid, pv.year, pv.month, pv.day, HOUR(pv.timestamp), DATE(pv.timestamp), DATE_FORMAT(pv.timestamp, '%Y-%m-%d %H:00:00')
+ORDER BY c.organization_id ASC, c.website_id ASC, date_day ASC, timestamp_hour ASC
